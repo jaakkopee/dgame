@@ -16,7 +16,7 @@ class NPC:
     def answer(self, question, player):
         happy_gen = self.gen
         prompt = f"Question to {self.name}: "+question
-        result = happy_gen(prompt, do_sample=True, min_length=12, max_length=32, temperature=0.9, top_k=0, top_p=0.9, repetition_penalty=0.79, num_return_sequences=1)
+        result = happy_gen(prompt, do_sample=True, min_length=12, max_length=512, temperature=0.9, top_k=0, top_p=0.969, repetition_penalty=0.79, num_return_sequences=1)
         player.points += 26
         return result[0]['generated_text']
 
@@ -437,7 +437,7 @@ class Game:
         #create a new window
         window = tk.Toplevel(self.window)
         window.title("Conversation")
-        window.geometry("300x200")
+        window.geometry("300x300")
         #create a label
         label = tk.Label(window, text="Hello, I am "+self.npc.name+". Ask me a question.")
         label.pack()
@@ -448,9 +448,8 @@ class Game:
         text_input = tk.Entry(frame)
         text_input.pack(side=tk.LEFT)
         text_input.focus()
-        #create an answer label that can show the answer (long text)
-        answer_label = tk.Label(window, text="", font="Courier 13", fg="white", bg="black")
-        answer_label.pack()
+        answer_text = tk.Text(window, height=12, width=38)
+        answer_text.pack()
 
         #handle the enter key being pressed
         def enter_pressed(event):
@@ -459,7 +458,9 @@ class Game:
             #clear the text input box
             text_input.delete(0, tk.END)
             answer = self.npc.answer(text, self.player)
-            answer_label.config(text=answer)
+            #clear the answer text box
+            answer_text.delete("1.0", tk.END)
+            answer_text.insert(tk.END, answer)
             return
                 
         #bind the enter key to the enter_pressed function
