@@ -23,7 +23,7 @@ class Weapon:
 
 weapons = [Weapon("Fists", 5),
             Weapon("Sword", 12),
-            Weapon("Gun", 20),
+            Weapon("Gun", 26),
             Weapon("Iron Fist", 50),
             Weapon("Cat'o'nine", 16),
             Weapon("Knife", 10),
