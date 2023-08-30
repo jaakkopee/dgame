@@ -182,8 +182,43 @@ class Game:
         self.draw_dungeon()
         self.update_status()
         self.schedule_health_increase()
+        self.move_enemy()
         self.window.bind("<Key>", self.key_pressed)
         self.window.mainloop()
+
+    def move_enemy(self):
+        if not self.enemy.dead:
+            player_position = (self.player.x // scale_factor, self.player.y // scale_factor)
+            enemy_position = (self.enemy.x // scale_factor, self.enemy.y // scale_factor)
+
+            # Calculate the difference between enemy and player positions
+            dx = player_position[0] - enemy_position[0]
+            dy = player_position[1] - enemy_position[1]
+
+            # Check if the enemy is in the same cell as the player
+            if dx == 0 and dy == 0:
+                self.fight()  # Initiate a fight if they are in the same cell
+            else:
+                # Move enemy towards the player (horizontally or vertically)
+                if abs(dx) > abs(dy):
+                    if dx > 0 and self.can_move_to(enemy_position[0] + 1, enemy_position[1]):
+                        self.enemy.x += scale_factor
+                    elif dx < 0 and self.can_move_to(enemy_position[0] - 1, enemy_position[1]):
+                        self.enemy.x -= scale_factor
+                else:
+                    if dy > 0 and self.can_move_to(enemy_position[0], enemy_position[1] + 1):
+                        self.enemy.y += scale_factor
+                    elif dy < 0 and self.can_move_to(enemy_position[0], enemy_position[1] - 1):
+                        self.enemy.y -= scale_factor
+
+            self.draw_dungeon()
+            self.window.after(1000, self.move_enemy)  # Move enemy periodically
+
+    def can_move_to(self, x, y):
+        # Check if the enemy can move to the specified cell
+        if 0 <= x < 50 and 0 <= y < 50:
+            return self.dungeon.dungeon[y][x] == 0
+        return False
 
     def go_to_next_level(self):
         self.player.points += 250
