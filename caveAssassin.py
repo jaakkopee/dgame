@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.messagebox as messagebox
 import random
+import sys
 
 scale_factor = 15
 
@@ -51,6 +52,7 @@ class Player:
         self.weapon = Weapon("Fists", 5)
         self.bomb = None
         self.points = 0
+        self.lives = 3
 
 class Bomb:
     def __init__(self, x, y):
@@ -240,10 +242,12 @@ class Game:
         weapon=self.player.weapon
         health=self.player.health
         points=self.player.points
+        lives=self.player.lives
         self.player = Player(player_x, player_y)
         self.player.weapon = weapon
         self.player.health = health
         self.player.points = points
+        self.player.lives = lives
         self.bomb = Bomb(bomb_x, bomb_y)
         self.enemy = Enemy(enemy_x, enemy_y)
         self.portal = Portal(portal_x, portal_y)
@@ -321,7 +325,7 @@ class Game:
             status += "\nDigbot is not digging"
         if self.digbot.digging:
             status += "\nDigbot is digging"
-        status += f"\nPoints: {self.player.points} Level: {self.level}"
+        status += f"\nPoints: {self.player.points} Level: {self.level} Lives: {self.player.lives}"
         status += "\nPress h for help"
         #update the status label
         self.status.config(text=status)
@@ -513,6 +517,13 @@ class Game:
         self.resurrecting_player = True
         self.player.points -= 100
         dying_place = (self.player.x // scale_factor, self.player.y // scale_factor)
+        self.player.lives -= 1
+        if self.player.lives == 0:
+            status="You have no lives left. Game over.\n" + "Game Points: "+str(self.player.points)+"\n" + "Weapon Bonus: "+str(self.player.weapon.damage*10) + "  Level Bonus: "+str(self.level*100)+"\n" + "Total Points: "+str(self.player.points+self.player.weapon.damage*10+self.level*100)  
+            self.status.config(text=status)
+            self.window.after(10000, self.window.destroy)
+            sys.exit()
+
         #lose the bomb
         if self.player.bomb:
             self.player.bomb = None
