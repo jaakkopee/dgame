@@ -186,6 +186,12 @@ class Game:
         self.window.bind("<Key>", self.key_pressed)
         self.window.mainloop()
 
+    def reset_enemy(self):
+        enemy_x, enemy_y = self.dungeon.init_place_objects()[4:6]
+        self.enemy = Enemy(enemy_x, enemy_y)
+        self.draw_dungeon()
+        self.move_enemy()
+
     def move_enemy(self):
         if not self.enemy.dead:
             player_position = (self.player.x // scale_factor, self.player.y // scale_factor)
@@ -223,6 +229,8 @@ class Game:
 
     def go_to_next_level(self):
         self.player.points += 250
+        self.player.points += 250
+        self.enemy.dead = True  # Stop enemy movement
         #initialize the dungeon
         self.dungeon = Dungeon()
         self.digbot = DigBot(0, 0)
@@ -238,6 +246,7 @@ class Game:
         self.bomb = Bomb(bomb_x, bomb_y)
         self.enemy = Enemy(enemy_x, enemy_y)
         self.portal = Portal(portal_x, portal_y)
+        self.reset_enemy()
         self.draw_dungeon()
         self.update_status()
 
