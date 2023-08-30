@@ -171,6 +171,7 @@ class Game:
         self.status = tk.Label(self.window, text="Status: ok", fg="green", bg="black", font="Courier 13 bold")
         self.status.pack()
         self.dungeon = Dungeon()
+        self.level=1
         self.digbot = DigBot(0, 0)
         self.dug_cells = []
         player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y = self.dungeon.init_place_objects()
@@ -229,7 +230,7 @@ class Game:
 
     def go_to_next_level(self):
         self.player.points += 250
-        self.player.points += 250
+        self.level += 1
         self.enemy.dead = True  # Stop enemy movement
         #initialize the dungeon
         self.dungeon = Dungeon()
@@ -320,7 +321,7 @@ class Game:
             status += "\nDigbot is not digging"
         if self.digbot.digging:
             status += "\nDigbot is digging"
-        status += f"\nPoints: {self.player.points}"
+        status += f"\nPoints: {self.player.points} Level: {self.level}"
         status += "\nPress h for help"
         #update the status label
         self.status.config(text=status)
