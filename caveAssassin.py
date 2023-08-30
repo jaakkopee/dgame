@@ -168,7 +168,7 @@ class Game:
         self.window.title("Cave Assassin--Kill the enemy and go through the portal to the next level!")
         self.canvas = tk.Canvas(self.window, width=canvas_x, height=canvas_y, bg="white")
         self.canvas.pack()
-        self.status = tk.Label(self.window, text="Status: ok", fg="black", bg="white", font="Courier 16")
+        self.status = tk.Label(self.window, text="Status: ok", fg="green", bg="black", font="Courier 13 bold")
         self.status.pack()
         self.dungeon = Dungeon()
         self.digbot = DigBot(0, 0)
@@ -321,6 +321,7 @@ class Game:
         if self.digbot.digging:
             status += "\nDigbot is digging"
         status += f"\nPoints: {self.player.points}"
+        status += "\nPress h for help"
         #update the status label
         self.status.config(text=status)
 
@@ -494,6 +495,9 @@ class Game:
         elif event.keysym == "space":
             if self.player.bomb:
                 self.place_bomb()
+
+        elif event.keysym == "h":
+            messagebox.showinfo("Help", "Use the arrow keys to move. Use the space bar to place a bomb. Kill the enemy and go through the portal to the next level. You can dig through walls, but it takes time. You can also pick up bombs and use them to kill the enemy and demolish walls. If the enemy is killed by bomb, he's weapon cannot be salvaged like after him dying in combat.")
 
         #empty the cell the player was in
         dungeon[old_y // scale_factor][old_x // scale_factor] = 0
