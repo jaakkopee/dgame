@@ -513,17 +513,20 @@ class Game:
         self.update_status()
         self.draw_dungeon()
 
+    def quit(self):
+        self.window.destroy()
+        sys.exit()
+
     def resurrect_player(self):
         self.resurrecting_player = True
-        self.player.points -= 100
         dying_place = (self.player.x // scale_factor, self.player.y // scale_factor)
         self.player.lives -= 1
         if self.player.lives == 0:
-            status="You have no lives left. Game over.\n" + "Game Points: "+str(self.player.points)+"\n" + "Weapon Bonus: "+str(self.player.weapon.damage*10) + "  Level Bonus: "+str(self.level*100)+"\n" + "Total Points: "+str(self.player.points+self.player.weapon.damage*10+self.level*100)  
-            self.status.config(text=status)
-            self.window.after(10000, self.window.destroy)
-            sys.exit()
-
+            self.canvas.delete("all")
+            messagebox.showinfo("Game Over", "You have no lives left. Game over.\n" + "Game Points: "+str(self.player.points)+"\n" + "Weapon Bonus: "+str(self.player.weapon.damage*10) + "\nLevel Bonus: "+str(self.level*100)+"\n" + "Total Points: "+str(self.player.points+self.player.weapon.damage*10+self.level*100))
+            self.quit()
+            return
+        self.player.points -= 100
         #lose the bomb
         if self.player.bomb:
             self.player.bomb = None
