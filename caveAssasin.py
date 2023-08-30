@@ -195,9 +195,9 @@ class Game:
             dx = player_position[0] - enemy_position[0]
             dy = player_position[1] - enemy_position[1]
 
-            # Check if the enemy is in the same cell as the player
-            if dx == 0 and dy == 0:
-                self.fight()  # Initiate a fight if they are in the same cell
+            # Check if the enemy is in the next cell to the player
+            if dx <= 1 and dy <= 1:
+                self.fight()
             else:
                 # Move enemy towards the player (horizontally or vertically)
                 if abs(dx) > abs(dy):
@@ -211,6 +211,7 @@ class Game:
                     elif dy < 0 and self.can_move_to(enemy_position[0], enemy_position[1] - 1):
                         self.enemy.y -= scale_factor
 
+            self.dungeon.dungeon[enemy_position[1]][enemy_position[0]] = 0
             self.draw_dungeon()
             self.window.after(1000, self.move_enemy)  # Move enemy periodically
 
@@ -261,7 +262,7 @@ class Game:
         self.canvas.delete("all")
         #get the dungeon map
         dungeon = self.dungeon.dungeon
-        
+  
         #place the player, bomb, enemy, and portal on the dungeon map
         dungeon[self.player.y // scale_factor][self.player.x // scale_factor] = 2
         if not self.player.bomb:
