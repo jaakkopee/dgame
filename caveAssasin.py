@@ -519,6 +519,17 @@ class Game:
         self.player.y = y * scale_factor
         self.player.health = 100
         self.player.weapon = Weapon("Fists", 5)
+        #lose the bomb
+        self.player.bomb = None
+        #place the bomb in a random empty space
+        while True:
+            x = random.randint(0, 49)
+            y = random.randint(0, 49)
+            if self.dungeon.dungeon[y][x] == 0:
+                break
+        self.bomb.x = x * scale_factor
+        self.bomb.y = y * scale_factor
+        
         self.resurrecting_player = False
         return
     
