@@ -507,10 +507,18 @@ class Game:
     def resurrect_player(self):
         self.resurrecting_player = True
         self.player.points -= 100
+        dying_place = (self.player.x // scale_factor, self.player.y // scale_factor)
+        #lose the bomb
+        if self.player.bomb:
+            self.player.bomb = None
+            #place the bomb where the player died
+
+            self.bomb.x = dying_place[0] * scale_factor
+            self.bomb.y = dying_place[1] * scale_factor
+
         #delete the player from the dungeon
         self.dungeon.dungeon[self.player.y // scale_factor][self.player.x // scale_factor] = 0
         #place the player in a random empty space
-        dying_place = (self.player.x // scale_factor, self.player.y // scale_factor)
         while True:
             x = random.randint(0, 49)
             y = random.randint(0, 49)
@@ -520,15 +528,6 @@ class Game:
         self.player.y = y * scale_factor
         self.player.health = 100
         self.player.weapon = Weapon("Fists", 5)
-
-        #lose the bomb
-        if self.player.bomb:
-            self.player.bomb = None
-            #place the bomb where the player died
-
-            self.bomb.x = dying_place[0] * scale_factor
-            self.bomb.y = dying_place[1] * scale_factor
-
         self.resurrecting_player = False
         return
     
