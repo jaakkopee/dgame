@@ -5,6 +5,16 @@ import sys
 
 scale_factor = 15
 
+npc_names=["Old Mage", "Pretty Girl", "Strange Creep", "Merchant", "Healer"]
+class NPC:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.name = random.choice(npc_names)
+
+    def answer(self, question):
+        return "I am not yet implemented, sorry..."
+
 class DigBot:
     def __init__(self, x, y):
         self.digging = False
@@ -157,7 +167,16 @@ class Dungeon:
         portal_x = x * scale_factor
         portal_y = y * scale_factor
 
-        return player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y
+        while True:
+            x = random.randint(0, 49)
+            y = random.randint(0, 49)
+            if self.dungeon[y][x] == 0:
+                break
+
+        npc_x = x * scale_factor
+        npc_y = y * scale_factor
+
+        return player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y, npc_x, npc_y
         
 class Game:
     def __init__(self):
@@ -176,11 +195,12 @@ class Game:
         self.level=1
         self.digbot = DigBot(0, 0)
         self.dug_cells = []
-        player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y = self.dungeon.init_place_objects()
+        player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y, npc_x, npc_y = self.dungeon.init_place_objects()
         self.player = Player(player_x, player_y)
         self.resurrecting_player = False
         self.bomb = Bomb(bomb_x, bomb_y)
         self.enemy = Enemy(enemy_x, enemy_y)
+        self.npc = NPC(npc_x, npc_y)
         self.portal = Portal(portal_x, portal_y)
         self.draw_dungeon()
         self.update_status()
@@ -238,7 +258,7 @@ class Game:
         self.dungeon = Dungeon()
         self.digbot = DigBot(0, 0)
         self.dug_cells = []
-        player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y = self.dungeon.init_place_objects()
+        player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y, npc_x, npc_y = self.dungeon.init_place_objects()
         weapon=self.player.weapon
         health=self.player.health
         points=self.player.points
@@ -251,6 +271,7 @@ class Game:
         self.bomb = Bomb(bomb_x, bomb_y)
         self.enemy = Enemy(enemy_x, enemy_y)
         self.portal = Portal(portal_x, portal_y)
+        self.npc = NPC(npc_x, npc_y)
         self.reset_enemy()
         self.draw_dungeon()
         self.update_status()
@@ -277,7 +298,7 @@ class Game:
         #get the dungeon map
         dungeon = self.dungeon.dungeon
   
-        #place the player, bomb, enemy, and portal on the dungeon map
+        #place the player, bomb, enemy, portal, digbot and npc on the dungeon map
         dungeon[self.player.y // scale_factor][self.player.x // scale_factor] = 2
         if not self.player.bomb:
             dungeon[self.bomb.y // scale_factor][self.bomb.x // scale_factor] = 3
@@ -286,6 +307,7 @@ class Game:
         dungeon[self.portal.y // scale_factor][self.portal.x // scale_factor] = 5
         if self.digbot.digging:
             dungeon[self.digbot.y][self.digbot.x] = 6
+        dungeon[self.npc.y // scale_factor][self.npc.x // scale_factor] = 7
 
         #iterate over the cells in the dungeon
         for y in range(50):
@@ -311,6 +333,9 @@ class Game:
                 #digbot
                 elif (x,y) == (self.digbot.x, self.digbot.y) and self.digbot.digging:
                     self.canvas.create_rectangle(x * scale_factor, y * scale_factor, x * scale_factor + scale_factor, y * scale_factor + scale_factor, fill="grey")
+                #npc
+                elif dungeon[y][x] == 7:
+                    self.canvas.create_rectangle(x * scale_factor, y * scale_factor, x * scale_factor + scale_factor, y * scale_factor + scale_factor, fill="green")
 
     def update_status(self):
         #create the status string
@@ -403,6 +428,39 @@ class Game:
         self.draw_dungeon()
         self.update_status()
 
+    def conversation_window(self):
+        #create a new window
+        window = tk.Toplevel(self.window)
+        window.title("Conversation")
+        window.geometry("300x200")
+        #create a label
+        label = tk.Label(window, text="Hello, I am "+self.npc.name)
+        label.pack()
+        #create a frame
+        frame = tk.Frame(window)
+        frame.pack()
+        #create a text input box
+        text_input = tk.Entry(frame)
+        text_input.pack(side=tk.LEFT)
+        text_input.focus()
+        #create an answer label
+        answer_label = tk.Label(window, text="")
+        answer_label.pack()
+        #handle the enter key being pressed
+        def enter_pressed(event):
+            #get the text from the text input box
+            text = text_input.get()
+            #clear the text input box
+            text_input.delete(0, tk.END)
+            answer = self.npc.answer(text)
+            answer_label.config(text=answer)
+            return
+                
+        #bind the enter key to the enter_pressed function
+        text_input.bind("<Return>", enter_pressed)
+
+
+
     def key_pressed(self, event):
         #if the player has just died, don't do anything
         if self.resurrecting_player:
@@ -430,6 +488,8 @@ class Game:
                     if self.enemy.dead:
                         self.go_to_next_level()
                         return
+                if dungeon[self.player.y // scale_factor - 1][self.player.x // scale_factor] == 7:
+                    self.conversation_window()
                 if dungeon[self.player.y // scale_factor - 1][self.player.x // scale_factor] == 0:
                     self.player.y -= scale_factor
 
@@ -452,6 +512,8 @@ class Game:
                     if self.enemy.dead:
                         self.go_to_next_level()
                         return
+                if dungeon[self.player.y // scale_factor + 1][self.player.x // scale_factor] == 7:
+                    self.conversation_window()
                 if dungeon[self.player.y // scale_factor + 1][self.player.x // scale_factor] == 0:
                     self.player.y += scale_factor
                     
@@ -473,6 +535,8 @@ class Game:
                     if self.enemy.dead:
                         self.go_to_next_level()
                         return
+                if dungeon[self.player.y // scale_factor][self.player.x // scale_factor -1] == 7:
+                    self.conversation_window()
                 if dungeon[self.player.y // scale_factor][self.player.x // scale_factor - 1] == 0:
                     self.player.x -= scale_factor
 
@@ -494,6 +558,8 @@ class Game:
                     if self.enemy.dead:
                         self.go_to_next_level()
                         return
+                if dungeon[self.player.y // scale_factor][self.player.x // scale_factor + 1] == 7:
+                    self.conversation_window()
                 if dungeon[self.player.y // scale_factor][self.player.x // scale_factor + 1] == 0:
                     self.player.x += scale_factor
 
