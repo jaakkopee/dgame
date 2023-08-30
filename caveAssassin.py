@@ -5,7 +5,8 @@ import sys
 from transformers import pipeline
 
 scale_factor = 15
-npc_names=["Old Mage", "Pretty Girl", "Strange Creep", "Merchant", "Healer"]
+npc_names=["an old mage", "a pretty girl", "a strange creep", "a merchant", "a healer"]
+
 class NPC:
     def __init__(self, x, y):
         self.x = x
