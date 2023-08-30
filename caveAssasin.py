@@ -196,7 +196,7 @@ class Game:
             dy = player_position[1] - enemy_position[1]
 
             # Check if the enemy is in the next cell to the player
-            if dx <= 1 and dy <= 1:
+            if abs(dx) <= 1 and abs(dy) <= 1:
                 self.fight()
             else:
                 # Move enemy towards the player (horizontally or vertically)
