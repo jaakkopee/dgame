@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter.messagebox as messagebox
 import random
 import sys
+from transformers import pipeline
 
 scale_factor = 15
 
@@ -11,9 +12,11 @@ class NPC:
         self.x = x
         self.y = y
         self.name = random.choice(npc_names)
-
+        self.gen = pipeline('text-generation', model='EleutherAI/gpt-neo-125M')
     def answer(self, question):
-        return "I am not yet implemented, sorry..."
+        happy_gen = self.gen
+        result = happy_gen(question, do_sample=True, min_length=50)
+        return result[0]['generated_text']
 
 class DigBot:
     def __init__(self, x, y):
@@ -443,9 +446,10 @@ class Game:
         text_input = tk.Entry(frame)
         text_input.pack(side=tk.LEFT)
         text_input.focus()
-        #create an answer label
+        #create an answer label that can show the answer (long text)
         answer_label = tk.Label(window, text="")
         answer_label.pack()
+
         #handle the enter key being pressed
         def enter_pressed(event):
             #get the text from the text input box
