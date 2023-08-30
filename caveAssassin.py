@@ -6,16 +6,17 @@ from transformers import pipeline
 
 scale_factor = 15
 npc_names=["an old mage", "a pretty girl", "a strange creep", "a merchant", "a healer"]
-
+gen = pipeline('text-generation', model='EleutherAI/gpt-neo-125M')
 class NPC:
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.name = random.choice(npc_names)
-        self.gen = pipeline('text-generation', model='EleutherAI/gpt-neo-125M')
+        self.gen = gen
     def answer(self, question, player):
         happy_gen = self.gen
-        result = happy_gen(self.name+" answers to the question '"+ question +"':", do_sample=True, min_length=20, max_length=50, temperature=0.7, top_k=0, top_p=0.9, repetition_penalty=1.0, num_return_sequences=1)
+        prompt = f"Question to {self.name}: "+question
+        result = happy_gen(prompt, do_sample=True, min_length=12, max_length=32, temperature=0.9, top_k=0, top_p=0.9, repetition_penalty=0.79, num_return_sequences=1)
         player.points += 26
         return result[0]['generated_text']
 
