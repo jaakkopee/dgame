@@ -4,6 +4,7 @@ import random
 import sys
 from transformers import pipeline
 
+scale_factor = 15
 npc_names=["Old Mage", "Pretty Girl", "Strange Creep", "Merchant", "Healer"]
 class NPC:
     def __init__(self, x, y):
