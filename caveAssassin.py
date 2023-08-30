@@ -4,8 +4,6 @@ import random
 import sys
 from transformers import pipeline
 
-scale_factor = 15
-
 npc_names=["Old Mage", "Pretty Girl", "Strange Creep", "Merchant", "Healer"]
 class NPC:
     def __init__(self, x, y):
@@ -13,9 +11,10 @@ class NPC:
         self.y = y
         self.name = random.choice(npc_names)
         self.gen = pipeline('text-generation', model='EleutherAI/gpt-neo-125M')
-    def answer(self, question):
+    def answer(self, question, player):
         happy_gen = self.gen
-        result = happy_gen(question, do_sample=True, min_length=50)
+        result = happy_gen(self.name+" answers to the question '"+ question +"':", do_sample=True, min_length=20, max_length=50, temperature=0.7, top_k=0, top_p=0.9, repetition_penalty=1.0, num_return_sequences=1)
+        player.points += 26
         return result[0]['generated_text']
 
 class DigBot:
@@ -437,7 +436,7 @@ class Game:
         window.title("Conversation")
         window.geometry("300x200")
         #create a label
-        label = tk.Label(window, text="Hello, I am "+self.npc.name)
+        label = tk.Label(window, text="Hello, I am "+self.npc.name+". Ask me a question.")
         label.pack()
         #create a frame
         frame = tk.Frame(window)
@@ -447,7 +446,7 @@ class Game:
         text_input.pack(side=tk.LEFT)
         text_input.focus()
         #create an answer label that can show the answer (long text)
-        answer_label = tk.Label(window, text="")
+        answer_label = tk.Label(window, text="", font="Courier 13", fg="white", bg="black")
         answer_label.pack()
 
         #handle the enter key being pressed
@@ -456,7 +455,7 @@ class Game:
             text = text_input.get()
             #clear the text input box
             text_input.delete(0, tk.END)
-            answer = self.npc.answer(text)
+            answer = self.npc.answer(text, self.player)
             answer_label.config(text=answer)
             return
                 
