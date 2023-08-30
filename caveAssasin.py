@@ -460,8 +460,8 @@ class Game:
         self.draw_dungeon()
 
     def resurrect_player(self):
-        self.player.points -= 100
         self.resurrecting_player = True
+        self.player.points -= 100
         #delete the player from the dungeon
         self.dungeon.dungeon[self.player.y // scale_factor][self.player.x // scale_factor] = 0
         #place the player in a random empty space
