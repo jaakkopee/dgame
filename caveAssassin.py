@@ -467,12 +467,14 @@ class Game:
             answer_text.delete("1.0", tk.END)
             answer_text.insert(tk.END, answer)
             return
+        
         #handle window being closed
         def on_closing():
             self.conversing = False
             window.destroy()
 
         window.protocol("WM_DELETE_WINDOW", on_closing)
+        
         #bind the enter key to the enter_pressed function
         text_input.bind("<Return>", enter_pressed)
 
