@@ -471,6 +471,7 @@ class Game:
     def game_over_info_window(self):
         #delete player from dungeon
         self.dungeon.dungeon[self.player.y // scale_factor][self.player.x // scale_factor] = 0
+        self.update_status()
         self.draw_dungeon() # Redraw the dungeon
         #stop updating the dungeon
         self.game_over = True
