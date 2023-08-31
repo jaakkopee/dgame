@@ -207,6 +207,7 @@ class Game:
         self.enemy = Enemy(enemy_x, enemy_y)
         self.npc = NPC(npc_x, npc_y)
         self.portal = Portal(portal_x, portal_y)
+        self.conversing = False
         self.draw_dungeon()
         self.update_status()
         self.schedule_health_increase()
@@ -434,10 +435,14 @@ class Game:
         self.update_status()
 
     def conversation_window(self):
+        #prevent more than one conversation window from being open at a time
+        if self.conversing:
+            return
+        self.conversing = True
         #create a new window
         window = tk.Toplevel(self.window)
         window.title("Conversation")
-        window.geometry("300x300")
+        window.geometry("360x580")
         #create a label
         label = tk.Label(window, text="Hello, I am "+self.npc.name+". Ask me a question.")
         label.pack()
@@ -448,7 +453,7 @@ class Game:
         text_input = tk.Entry(frame)
         text_input.pack(side=tk.LEFT)
         text_input.focus()
-        answer_text = tk.Text(window, height=12, width=38)
+        answer_text = tk.Text(window, height=26, width=38, font="Courier 15")
         answer_text.pack()
 
         #handle the enter key being pressed
@@ -462,11 +467,14 @@ class Game:
             answer_text.delete("1.0", tk.END)
             answer_text.insert(tk.END, answer)
             return
-                
+        #handle window being closed
+        def on_closing():
+            self.conversing = False
+            window.destroy()
+
+        window.protocol("WM_DELETE_WINDOW", on_closing)
         #bind the enter key to the enter_pressed function
         text_input.bind("<Return>", enter_pressed)
-
-
 
     def key_pressed(self, event):
         #if the player has just died, don't do anything
