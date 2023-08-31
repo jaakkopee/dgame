@@ -488,6 +488,7 @@ class Game:
         #create a label
         label = tk.Label(window, text="Use the arrow keys to move.\n Use the space bar to place a bomb.\n\n Kill the enemy and\ngo through the portal to the next level.\n\n You can dig through walls,\n but it takes time.\n\n You can also pick up bombs\n and use them to kill the enemy\n and demolish walls.\n The bomb is reusable.\n\n If the enemy is killed by bomb,\n he's weapon cannot be salvaged\n like after him dying in combat.\n\n Black rectangles are walls.\n White rectangles are floors.\n Blue rectangle is the player.\n Purple rectangle is a bomb.\n Red rectangle is the enemy.\n Yellow rectangle is the portal.\n Grey rectangle is the digbot.\n Green rectangle is an npc.\n\nPoints are awarded for killing the enemy,\n demolishing walls with a bomb,\n leveling up,\n talking to an npc\n and digging.\n\nMake sure to keep a safe distance\n from the bomb when it explodes\nor you lose 50 health.")
         label.pack()
+        #test
         #handle window being closed
         def on_closing():
             window.destroy()
