@@ -208,6 +208,8 @@ class Game:
         self.npc = NPC(npc_x, npc_y)
         self.portal = Portal(portal_x, portal_y)
         self.conversing = False
+        self.help_is_open = False
+        self.game_over = False
         self.draw_dungeon()
         self.update_status()
         self.schedule_health_increase()
@@ -222,6 +224,8 @@ class Game:
         self.move_enemy()
 
     def move_enemy(self):
+        if self.game_over:
+            return
         if not self.enemy.dead:
             player_position = (self.player.x // scale_factor, self.player.y // scale_factor)
             enemy_position = (self.enemy.x // scale_factor, self.enemy.y // scale_factor)
@@ -257,6 +261,8 @@ class Game:
         return False
 
     def go_to_next_level(self):
+        if self.game_over:
+            return
         self.player.points += 250
         self.level += 1
         self.enemy.dead = True  # Stop enemy movement
@@ -283,10 +289,14 @@ class Game:
         self.update_status()
 
     def schedule_health_increase(self):
+        if self.game_over:
+            return
         #schedule the health increase
         self.window.after(800, self.health_increase)
 
     def health_increase(self):
+        if self.game_over:
+            return
         #increase the player's health
         self.player.health += 1
         #if the player's health is greater than 100, set it to 100
@@ -298,6 +308,8 @@ class Game:
         self.window.after(800, self.health_increase)
 
     def draw_dungeon(self):
+        if self.game_over:
+            return
         #draw the dungeon on the canvas
         #delete everything on the canvas
         self.canvas.delete("all")
@@ -344,6 +356,8 @@ class Game:
                     self.canvas.create_rectangle(x * scale_factor, y * scale_factor, x * scale_factor + scale_factor, y * scale_factor + scale_factor, fill="green")
 
     def update_status(self):
+        if self.game_over:
+            return
         #create the status string
         status = f"Health: {self.player.health}  Weapon: {self.player.weapon.name}  Damage: {self.player.weapon.damage}"   
         if not self.enemy.dead:
@@ -434,7 +448,49 @@ class Game:
         self.draw_dungeon()
         self.update_status()
 
+    def help_window(self):
+        if self.game_over:
+            return
+        #prevent more than one help window from being open at a time
+        if self.help_is_open:
+            return
+        self.help_is_open = True
+        #create a new window
+        window = tk.Toplevel(self.window)
+        window.title("Help")
+        window.geometry("360x580")
+        #create a label
+        label = tk.Label(window, text="Use the arrow keys to move.\n Use the space bar to place a bomb.\n\n Kill the enemy and\ngo through the portal to the next level.\n\n You can dig through walls,\n but it takes time.\n\n You can also pick up bombs\n and use them to kill the enemy\n and demolish walls.\n\n If the enemy is killed by bomb,\n he's weapon cannot be salvaged\n like after him dying in combat.\n\n Black rectangles are walls.\n White rectangles are floors.\n Blue rectangle is the player.\n Purple rectangle is a bomb.\n Red rectangle is the enemy.\n Yellow rectangle is the portal.\n Grey rectangle is the digbot.\n Green rectangle is an npc.\n\nPoints are awarded for killing the enemy,\n detonating bombs,\n leveling up,\n talking to an npc\n and digging.\n\nMake sure to keep a safe distance\n from the bomb when it explodes\nor you lose 50 health.")
+        label.pack()
+        #handle window being closed
+        def on_closing():
+            window.destroy()
+            self.help_is_open = False
+        window.protocol("WM_DELETE_WINDOW", on_closing)
+
+    def game_over_info_window(self):
+        #delete player from dungeon
+        self.dungeon.dungeon[self.player.y // scale_factor][self.player.x // scale_factor] = 0
+        self.draw_dungeon() # Redraw the dungeon
+        #stop updating the dungeon
+        self.game_over = True
+        #create a new window
+        window = tk.Toplevel(self.window)
+        window.title("Game Over")
+        window.geometry("360x200")
+        #create a label
+        label = tk.Label(window, text=f"Game Over\n\nPoints: {self.player.points}\nLevel Bonus: {self.level*10}\nWeapon Bonus: {self.player.weapon.damage*10}\n\nTotal: {self.player.points+self.level*10+self.player.weapon.damage*10}")
+        label.pack()
+        #handle window being closed
+        def on_closing():
+            window.destroy()
+            self.window.destroy()
+            sys.exit()
+        window.protocol("WM_DELETE_WINDOW", on_closing)
+
     def conversation_window(self):
+        if self.game_over:
+            return
         #prevent more than one conversation window from being open at a time
         if self.conversing:
             return
@@ -479,6 +535,8 @@ class Game:
         text_input.bind("<Return>", enter_pressed)
 
     def key_pressed(self, event):
+        if self.game_over:
+            return
         #if the player has just died, don't do anything
         if self.resurrecting_player:
             return
@@ -585,7 +643,7 @@ class Game:
                 self.place_bomb()
 
         elif event.keysym == "h":
-            messagebox.showinfo("Help", "Use the arrow keys to move. Use the space bar to place a bomb. Kill the enemy and go through the portal to the next level. You can dig through walls, but it takes time. You can also pick up bombs and use them to kill the enemy and demolish walls. If the enemy is killed by bomb, he's weapon cannot be salvaged like after him dying in combat.")
+            self.help_window()
 
         #empty the cell the player was in
         dungeon[old_y // scale_factor][old_x // scale_factor] = 0
@@ -601,13 +659,14 @@ class Game:
         sys.exit()
 
     def resurrect_player(self):
+        if self.game_over:
+            return
         self.resurrecting_player = True
         dying_place = (self.player.x // scale_factor, self.player.y // scale_factor)
         self.player.lives -= 1
         if self.player.lives == 0:
             self.canvas.delete("all")
-            messagebox.showinfo("Game Over", "You have no lives left. Game over.\n" + "Game Points: "+str(self.player.points)+"\n" + "Weapon Bonus: "+str(self.player.weapon.damage*10) + "\nLevel Bonus: "+str(self.level*100)+"\n" + "Total Points: "+str(self.player.points+self.player.weapon.damage*10+self.level*100))
-            self.quit()
+            self.game_over_info_window()
             return
         self.player.points -= 100
         #lose the bomb
@@ -634,6 +693,8 @@ class Game:
         return
     
     def fight(self):
+        if self.game_over:
+            return
         #roll dice to determine who attacks first
         player_roll = random.randint(1, 6)
         enemy_roll = random.randint(1, 6)
