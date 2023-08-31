@@ -3,6 +3,7 @@ import tkinter.messagebox as messagebox
 import random
 import sys
 from transformers import pipeline
+import time
 
 scale_factor = 15
 npc_names=["an old mage", "a pretty girl", "a strange creep", "a merchant", "a healer"]
@@ -407,23 +408,36 @@ class Game:
         self.window.after(3000, self.explode_bomb)
 
     def explode_bomb(self):
-        self.player.points += 5
+        #find out how many walls are in the bombs radius
+        wall_count = 0
         #get the dungeon map
         dungeon = self.dungeon.dungeon
+        #iterate over the cells in the dungeon
+        for y in range(50):
+            for x in range(50):
+                #walls in bombs radius
+                wall_symbol = 1
+                if (x - self.bomb.x // scale_factor) ** 2 + (y - self.bomb.y // scale_factor) ** 2 <= 8 and dungeon[y][x] == wall_symbol:
+                    wall_count += 1
+
+        self.player.points += wall_count
+
         #iterate over the cells in the dungeon
         for y in range(50):
             for x in range(50):
                 #empty cells in bombs radius
                 if (x - self.bomb.x // scale_factor) ** 2 + (y - self.bomb.y // scale_factor) ** 2 <= 8:
                     dungeon[y][x] = 0
-        #if player is within 2 cells of the bomb, player takes damage of 50
-        if (self.player.x // scale_factor - self.bomb.x // scale_factor) ** 2 + (self.player.y // scale_factor - self.bomb.y // scale_factor) ** 2 <= 4:
+                    #bomb explosion animation
+                    self.bomb_animation(x, y)
+        #if player is within bombs radius, player takes damage of 50
+        if (self.player.x // scale_factor - self.bomb.x // scale_factor) ** 2 + (self.player.y // scale_factor - self.bomb.y // scale_factor) ** 2 <= 8:
             self.player.health -= 50
             if self.player.health <= 0:
                 self.player.health = 0
                 self.resurrect_player()
-        #if enemy is within 2 cells of the bomb, enemy takes damage of 50
-        if (self.enemy.x // scale_factor - self.bomb.x // scale_factor) ** 2 + (self.enemy.y // scale_factor - self.bomb.y // scale_factor) ** 2 <= 4:
+        #if enemy is within bombs radius, enemy takes damage of 50
+        if (self.enemy.x // scale_factor - self.bomb.x // scale_factor) ** 2 + (self.enemy.y // scale_factor - self.bomb.y // scale_factor) ** 2 <= 8:
             self.enemy.health -= 50
             if self.enemy.health <= 0:
                 self.enemy.health = 0
@@ -434,6 +448,18 @@ class Game:
         #redraw the dungeon
         self.draw_dungeon()
         self.update_status()
+
+    def bomb_animation(self, x, y):
+        #draw the explosion animation
+        self.canvas.create_rectangle(x * scale_factor, y * scale_factor, x * scale_factor + scale_factor, y * scale_factor + scale_factor, fill="orange")
+        #update the canvas
+        self.canvas.update()
+        #pause the program
+        time.sleep(0.001)
+        #delete the explosion animation
+        self.canvas.create_rectangle(x * scale_factor, y * scale_factor, x * scale_factor + scale_factor, y * scale_factor + scale_factor, fill="white")
+        #update the canvas
+        self.canvas.update()
 
     def schedule_digging(self):
         #schedule the digbot to dig
@@ -460,7 +486,7 @@ class Game:
         window.title("Help")
         window.geometry("360x580")
         #create a label
-        label = tk.Label(window, text="Use the arrow keys to move.\n Use the space bar to place a bomb.\n\n Kill the enemy and\ngo through the portal to the next level.\n\n You can dig through walls,\n but it takes time.\n\n You can also pick up bombs\n and use them to kill the enemy\n and demolish walls.\n\n If the enemy is killed by bomb,\n he's weapon cannot be salvaged\n like after him dying in combat.\n\n Black rectangles are walls.\n White rectangles are floors.\n Blue rectangle is the player.\n Purple rectangle is a bomb.\n Red rectangle is the enemy.\n Yellow rectangle is the portal.\n Grey rectangle is the digbot.\n Green rectangle is an npc.\n\nPoints are awarded for killing the enemy,\n detonating bombs,\n leveling up,\n talking to an npc\n and digging.\n\nMake sure to keep a safe distance\n from the bomb when it explodes\nor you lose 50 health.")
+        label = tk.Label(window, text="Use the arrow keys to move.\n Use the space bar to place a bomb.\n\n Kill the enemy and\ngo through the portal to the next level.\n\n You can dig through walls,\n but it takes time.\n\n You can also pick up bombs\n and use them to kill the enemy\n and demolish walls.\n\n If the enemy is killed by bomb,\n he's weapon cannot be salvaged\n like after him dying in combat.\n\n Black rectangles are walls.\n White rectangles are floors.\n Blue rectangle is the player.\n Purple rectangle is a bomb.\n Red rectangle is the enemy.\n Yellow rectangle is the portal.\n Grey rectangle is the digbot.\n Green rectangle is an npc.\n\nPoints are awarded for killing the enemy,\n demolishing walls with a bomb,\n leveling up,\n talking to an npc\n and digging.\n\nMake sure to keep a safe distance\n from the bomb when it explodes\nor you lose 50 health.")
         label.pack()
         #handle window being closed
         def on_closing():
