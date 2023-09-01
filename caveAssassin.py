@@ -6,7 +6,16 @@ from transformers import pipeline
 import time
 
 scale_factor = 15
+
 npc_names=["an old mage", "a pretty girl", "a strange creep", "a merchant", "a healer"]
+
+npc_items_for_sale={"a merchant":[("a gun", 12, "GUN"), ("a sword", 15, "SWORD")],
+                "a healer":[("invulnerability for 2 minutes", 10, "IV2"), ("invulnerability for 1 minute", 5, "IV1")],
+                "a strange creep":[("lbj pills (teleport to a random location at will)", 20, "LBJ"), ("pervitin (health max to 150 for 5 minutes)", 10, "PERV"), ("digbot deluxe (faster digging)", 50, "DIGDLX")],
+                "a pretty girl":[("a kiss (damage+10)", 100, "KISS"), ("a hug (damage+5)", 50, "HUG")],
+                "an old mage":[("paralyze enemy spell", 100, "PES"), ("weaken enemy spell", 50, "WES")]}
+
+
 gen = pipeline('text-generation', model='EleutherAI/gpt-neo-125M')
 class NPC:
     def __init__(self, x, y):
@@ -66,6 +75,16 @@ class Player:
         self.y = y
         self.health = 100
         self.weapon = Weapon("Fists", 5)
+        self.gold = 200
+        self.hug_active = False
+        self.kiss_active = False
+        self.invulnerability1_active = False
+        self.invulnerability2_active = False
+        self.lbj_pills_active = False
+        self.pervitin_active = False
+        self.digbot_deluxe_active = False
+        self.paralyze_enemy_active = False
+        self.weaken_enemy_active = False
         self.bomb = None
         self.points = 0
         self.lives = 3
@@ -274,11 +293,13 @@ class Game:
         health=self.player.health
         points=self.player.points
         lives=self.player.lives
+        gold=self.player.gold
         self.player = Player(player_x, player_y)
         self.player.weapon = weapon
         self.player.health = health
         self.player.points = points
         self.player.lives = lives
+        self.player.gold = gold
         self.bomb = Bomb(bomb_x, bomb_y)
         self.enemy = Enemy(enemy_x, enemy_y)
         self.portal = Portal(portal_x, portal_y)
@@ -362,7 +383,26 @@ class Game:
         if not self.enemy.dead:
             status += f"\nEnemy health: {self.enemy.health}  Enemy weapon: {self.enemy.weapon.name}  Enemy damage: {self.enemy.weapon.damage}"
         if self.enemy.dead:
-            status += "\nEnemy is dead"     
+            status += "\nEnemy is dead"
+        status += f"\nGold: {self.player.gold}"
+        if self.player.hug_active:
+            status += " HUG"
+        if self.player.kiss_active:
+            status += " KISS"
+        if self.player.invulnerability1_active:
+            status += " IV1"
+        if self.player.invulnerability2_active:
+            status += " IV2"
+        if self.player.lbj_pills_active:
+            status += " LBJ"
+        if self.player.pervitin_active:
+            status += " PERV"
+        if self.player.digbot_deluxe_active:
+            status += " DIGDLX"
+        if self.player.paralyze_enemy_active:
+            status += " PES"
+        if self.player.weaken_enemy_active:
+            status += " WES"
         if self.player.bomb:
             status += "\nPlayer has a bomb"
         if not self.digbot.digging:
@@ -420,6 +460,10 @@ class Game:
 
         self.player.points += wall_count
 
+        for _ in range(wall_count):
+            if random.randint(1, 20) >= 17:
+                self.player.gold += 1
+
         #iterate over the cells in the dungeon
         for y in range(50):
             for x in range(50):
@@ -467,6 +511,10 @@ class Game:
         for x, y in self.dug_cells:
             self.dungeon.dungeon[y][x] = 0
         self.player.points += 1
+        #throw 20 sided die to see if there is gold in the dug cell
+        if random.randint(1, 20) >= 17:
+            self.player.gold += 1
+
         self.dug_cells.clear()  # Clear the dug_cells list
         self.digbot.stop_digging()
         self.draw_dungeon()
@@ -528,6 +576,116 @@ class Game:
         #create a label
         label = tk.Label(window, text="Hello, I am "+self.npc.name+". Ask me a question.")
         label.pack()
+
+        #handle do-business-button being pressed
+        def do_business():
+            #create a new window
+            shop_window = tk.Toplevel(self.window)
+            shop_window.title("Shop")
+            shop_window.geometry("360x580")
+            #create a label
+            shop_label = tk.Label(shop_window, text="What would you like to buy?")
+            shop_label.pack()
+            #create a frame
+            shop_frame = tk.Frame(shop_window)
+            shop_frame.pack()
+            #show the items for sale of the npc
+            items_for_sale = npc_items_for_sale[self.npc.name]
+            if items_for_sale:
+                for item in items_for_sale:
+                    item_button = tk.Button(shop_frame, text=item, command=lambda item=item: buy_item(item))
+                    item_button.pack(side=tk.LEFT)
+
+            #handle buy_item being pressed
+            def buy_item(item):
+                #if the player has enough gold
+                if self.player.gold >= item[1]:
+                    #subtract the cost of the item from the player's gold
+                    self.player.gold -= item[1]
+                    #create a new window that tells the player that they bought the item and how to activate it
+                    bought_item_window = tk.Toplevel(self.window)
+                    bought_item_window.title("Bought item")
+                    bought_item_window.geometry("360x200")
+                    #create a label
+                    bought_item_label = tk.Label(bought_item_window, text="")
+                    bought_item_label.pack()
+                    #give the player the item
+                    if self.npc.name == "a merchant":
+                        if item[2] == "SWORD":
+                            self.player.weapon = weapons[1]
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a sword. Immediate activation.")
+                        if item[2] == "GUN":
+                            self.player.weapon = weapons[2] 
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a gun. Immediate activation.")
+
+                    if self.npc.name == "an old mage":
+                        if item[2] == "PES":
+                            self.player.paralyze_enemy_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a paralyze enemy spell. Immediate activation.")
+                        if item[2] == "WES":
+                            self.player.weaken_enemy_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a weaken enemy spell. Immediate activation.")
+                    if self.npc.name == "a healer":
+                        if item[2] == "IV2":
+                            self.player.invulnerability2_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought invulnerability for 2 minutes. Immediate activation.")
+                        if item[2] == "IV1":
+                            self.player.invulnerability1_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought invulnerability for 1 minute. Immediate activation.")
+                    if self.npc.name == "a pretty girl":
+                        if item[2] == "HUG":
+                            self.player.hug_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a hug. Immediate activation.")
+                        if item[2] == "KISS":
+                            self.player.kiss_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a kiss. Immediate activation.")
+                    if self.npc.name == "a strange creep":
+                        if item[2] == "LBJ":
+                            self.player.lbj_pills_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought lbj pills. Activate by pressing '1'.")
+                        if item[2] == "PERV":
+                            self.player.pervitin_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought pervitin. Immediate activation.")
+                        if item[2] == "DIGDLX": 
+                            self.player.digbot_deluxe_active = True
+                            #update bought_item_label
+                            bought_item_label.config(text="You bought a deluxe digbot. Immediate Activation.")
+
+                    #update the status label
+                    self.update_status()
+                    #destroy the shop window
+                    shop_window.destroy()
+                    #destroy the conversation window
+                    window.destroy()
+                    #stop conversing
+                    self.conversing = False
+                else:
+                    #create a new window
+                    not_enough_gold_window = tk.Toplevel(self.window)
+                    not_enough_gold_window.title("Not enough gold")
+                    not_enough_gold_window.geometry("360x200")
+                    #create a label
+                    not_enough_gold_label = tk.Label(not_enough_gold_window, text="You don't have enough gold.")
+                    not_enough_gold_label.pack()
+                    #handle window being closed
+                    def on_closing():
+                        not_enough_gold_window.destroy()
+                    not_enough_gold_window.protocol("WM_DELETE_WINDOW", on_closing)
+
+        #create do-business-button
+        do_business_button = tk.Button(window, text="Do business", command=do_business)
+        do_business_button.pack()
+
         #create a frame
         frame = tk.Frame(window)
         frame.pack()
@@ -537,6 +695,8 @@ class Game:
         text_input.focus()
         answer_text = tk.Text(window, height=26, width=38, font="Courier 15")
         answer_text.pack()
+
+
 
         #handle the enter key being pressed
         def enter_pressed(event):
