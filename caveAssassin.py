@@ -289,17 +289,39 @@ class Game:
         self.digbot = DigBot(0, 0)
         self.dug_cells = []
         player_x, player_y, bomb_x, bomb_y, enemy_x, enemy_y, portal_x, portal_y, npc_x, npc_y = self.dungeon.init_place_objects()
+
         weapon=self.player.weapon
         health=self.player.health
         points=self.player.points
         lives=self.player.lives
         gold=self.player.gold
+        hug_active = self.player.hug_active
+        kiss_active = self.player.kiss_active
+        invulnerability1_active = self.player.invulnerability1_active
+        invulnerability2_active = self.player.invulnerability2_active
+        lbj_pills_active = self.player.lbj_pills_active
+        pervitin_active = self.player.pervitin_active
+        digbot_deluxe_active = self.player.digbot_deluxe_active
+        paralyze_enemy_active = self.player.paralyze_enemy_active
+        weaken_enemy_active = self.player.weaken_enemy_active
+
         self.player = Player(player_x, player_y)
+
         self.player.weapon = weapon
         self.player.health = health
         self.player.points = points
         self.player.lives = lives
         self.player.gold = gold
+        self.player.hug_active = hug_active
+        self.player.kiss_active = kiss_active
+        self.player.invulnerability1_active = invulnerability1_active
+        self.player.invulnerability2_active = invulnerability2_active
+        self.player.lbj_pills_active = lbj_pills_active
+        self.player.pervitin_active = pervitin_active
+        self.player.digbot_deluxe_active = digbot_deluxe_active
+        self.player.paralyze_enemy_active = paralyze_enemy_active
+        self.player.weaken_enemy_active = weaken_enemy_active
+
         self.bomb = Bomb(bomb_x, bomb_y)
         self.enemy = Enemy(enemy_x, enemy_y)
         self.portal = Portal(portal_x, portal_y)
@@ -594,7 +616,7 @@ class Game:
             if items_for_sale:
                 for item in items_for_sale:
                     item_button = tk.Button(shop_frame, text=item, command=lambda item=item: buy_item(item))
-                    item_button.pack(side=tk.LEFT)
+                    item_button.pack(side=tk.BOTTOM)
 
             #handle buy_item being pressed
             def buy_item(item):
@@ -893,12 +915,13 @@ class Game:
                 self.enemy.health = 0
                 self.enemy.dead = True
                 self.player.points += 15*self.enemy.weapon.damage
+                self.player.gold += random.randint(0, 50)
                 #delete the enemy from the dungeon
                 self.dungeon.dungeon[self.enemy.y // scale_factor][self.enemy.x // scale_factor] = 0
                 #open a dialogue box to decide whether to take the enemy's weapon
                 if messagebox.askyesno("Enemy is dead", "Do you want to take the enemy's weapon?"):
                     self.player.weapon = self.enemy.weapon
-                    self.window.focus_force() 
+ 
             self.draw_dungeon()               
             self.update_status()
             return
