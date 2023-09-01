@@ -615,7 +615,7 @@ class Game:
             items_for_sale = npc_items_for_sale[self.npc.name]
             if items_for_sale:
                 for item in items_for_sale:
-                    item_button = tk.Button(shop_frame, text=item, command=lambda item=item: buy_item(item))
+                    item_button = tk.Button(shop_frame, text=f"{item[0]} {item[1]} gold, id: {item[2]}", command=lambda item=item: buy_item(item))
                     item_button.pack(side=tk.BOTTOM)
 
             #handle buy_item being pressed
