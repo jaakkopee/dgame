@@ -651,6 +651,7 @@ class Game:
                             self.player.weaken_enemy_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought a weaken enemy spell. Immediate activation.")
+                    
                     if self.npc.name == "a healer":
                         if item[2] == "IV2":
                             self.player.invulnerability2_active = True
@@ -660,6 +661,7 @@ class Game:
                             self.player.invulnerability1_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought invulnerability for 1 minute. Immediate activation.")
+                    
                     if self.npc.name == "a pretty girl":
                         if item[2] == "HUG":
                             self.player.hug_active = True
@@ -669,6 +671,7 @@ class Game:
                             self.player.kiss_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought a kiss. Immediate activation.")
+                    
                     if self.npc.name == "a strange creep":
                         if item[2] == "LBJ":
                             self.player.lbj_pills_active = True
