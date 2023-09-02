@@ -75,7 +75,7 @@ class Player:
         self.y = y
         self.health = 100
         self.weapon = Weapon("Fists", 5)
-        self.gold = 200
+        self.gold = 20
         self.hug_active = False
         self.kiss_active = False
         self.invulnerability1_active = False
@@ -483,8 +483,8 @@ class Game:
         self.player.points += wall_count
 
         for _ in range(wall_count):
-            if random.randint(1, 20) >= 17:
-                self.player.gold += 1
+
+                 self.player.gold += 1/2**random.randint(1, 3)
 
         #iterate over the cells in the dungeon
         for y in range(50):
@@ -533,9 +533,8 @@ class Game:
         for x, y in self.dug_cells:
             self.dungeon.dungeon[y][x] = 0
         self.player.points += 1
-        #throw 20 sided die to see if there is gold in the dug cell
-        if random.randint(1, 20) >= 17:
-            self.player.gold += 1
+        
+        self.player.gold += 1/2**random.randint(1, 3)
 
         self.dug_cells.clear()  # Clear the dug_cells list
         self.digbot.stop_digging()
