@@ -9,12 +9,14 @@ scale_factor = 15
 
 npc_names=["an old mage", "a pretty girl", "a strange creep", "a merchant", "a healer"]
 
-npc_items_for_sale={"a merchant":[("a gun", 12, "GUN"), ("a sword", 15, "SWORD")],
-                "a healer":[("invulnerability for 2 minutes", 10, "IV2"), ("invulnerability for 1 minute", 5, "IV1")],
-                "a strange creep":[("lbj pills (teleport to a random location at will)", 20, "LBJ"), ("pervitin (health max to 150 for 5 minutes)", 10, "PERV"), ("digbot deluxe (faster digging)", 50, "DIGDLX")],
-                "a pretty girl":[("a kiss (damage+10)", 100, "KISS"), ("a hug (damage+5)", 50, "HUG")],
-                "an old mage":[("paralyze enemy spell", 100, "PES"), ("weaken enemy spell", 50, "WES")]}
-
+FLOOR = 0
+WALL = 1
+PLAYER = 2
+BOMB = 3
+ENEMY = 4
+PORTAL = 5
+DIGBOT = 6
+NPC = 7
 
 gen = pipeline('text-generation', model='EleutherAI/gpt-neo-125M')
 class NPC:
@@ -74,16 +76,21 @@ class Player:
         self.x = x
         self.y = y
         self.health = 100
+        self.health_max = 100
         self.weapon = Weapon("Fists", 5)
         self.gold = 20
         self.hug_active = False
         self.kiss_active = False
         self.invulnerability1_active = False
         self.invulnerability2_active = False
+        self.lbj_pills_acquired = False
         self.lbj_pills_active = False
+        self.pervitin_acquired = False
         self.pervitin_active = False
         self.digbot_deluxe_active = False
+        self.paralyze_enemy_acquired = False
         self.paralyze_enemy_active = False
+        self.weaken_enemy_acquired = False
         self.weaken_enemy_active = False
         self.bomb = None
         self.points = 0
@@ -99,6 +106,7 @@ class Enemy:
         self.x = x
         self.y = y
         self.health = 100
+        self.health_max = 100
         self.weapon = random.choice(weapons)
         self.dead = False
 
@@ -233,6 +241,10 @@ class Game:
         self.schedule_health_increase()
         self.move_enemy()
         self.window.bind("<Key>", self.key_pressed)
+        self.all_items_list=[]
+        self.damage_boost=0
+        self.health_max=100
+        self.npc_items_for_sale={"a merchant":[("a gun", 12, "GUN", 0, "INF"), ("a sword", 15, "SWORD", 0, "INF")], "a healer":[("invulnerability for 2 minutes", 10, "IV2", 0, 120000), ("invulnerability for 1 minute", 5, "IV1", 0, 60000)],"a strange creep":[("lbj pills (teleport to a random location at will for five minutes)", 20, "LBJ", 120000, 300000), ("pervitin (health max to 150 for 5 minutes)", 10, "PERV", 60000, 300000), ("digbot deluxe (faster digging)", 50, "DIGDLX", 0, "INF")], "a pretty girl":[("a kiss (damage+10)", 100, "KISS", 0, 300000), ("a hug (damage+5)", 50, "HUG", 0, 150000)], "an old mage":[("paralyze enemy spell", 100, "PES", "USE_ACT_FUNC", 360000), ("weaken enemy spell", 50, "WES", "USE_ACT_FUNC", 180000)]}
         self.window.mainloop()
 
     def reset_enemy(self):
@@ -243,6 +255,8 @@ class Game:
 
     def move_enemy(self):
         if self.game_over:
+            return
+        if self.player.paralyze_enemy_active:
             return
         if not self.enemy.dead:
             player_position = (self.player.x // scale_factor, self.player.y // scale_factor)
@@ -299,10 +313,14 @@ class Game:
         kiss_active = self.player.kiss_active
         invulnerability1_active = self.player.invulnerability1_active
         invulnerability2_active = self.player.invulnerability2_active
+        lbj_pills_acquired = self.player.lbj_pills_acquired
         lbj_pills_active = self.player.lbj_pills_active
+        pervitin_acquired = self.player.pervitin_acquired
         pervitin_active = self.player.pervitin_active
         digbot_deluxe_active = self.player.digbot_deluxe_active
+        paralyze_enemy_acquired = self.player.paralyze_enemy_acquired
         paralyze_enemy_active = self.player.paralyze_enemy_active
+        weaken_enemy_acquired = self.player.weaken_enemy_acquired
         weaken_enemy_active = self.player.weaken_enemy_active
 
         self.player = Player(player_x, player_y)
@@ -316,10 +334,14 @@ class Game:
         self.player.kiss_active = kiss_active
         self.player.invulnerability1_active = invulnerability1_active
         self.player.invulnerability2_active = invulnerability2_active
+        self.player.lbj_pills_acquired = lbj_pills_acquired
         self.player.lbj_pills_active = lbj_pills_active
+        self.player.pervitin_acquired = pervitin_acquired
         self.player.pervitin_active = pervitin_active
         self.player.digbot_deluxe_active = digbot_deluxe_active
+        self.player.paralyze_enemy_acquired = paralyze_enemy_acquired
         self.player.paralyze_enemy_active = paralyze_enemy_active
+        self.player.weaken_enemy_acquired = weaken_enemy_acquired
         self.player.weaken_enemy_active = weaken_enemy_active
 
         self.bomb = Bomb(bomb_x, bomb_y)
@@ -328,6 +350,49 @@ class Game:
         self.npc = NPC(npc_x, npc_y)
         self.reset_enemy()
         self.draw_dungeon()
+        self.update_status()
+
+    def end_invulnerability1(self):
+        self.player.invulnerability1_active = False
+        self.update_status()
+
+    def end_invulnerability2(self):
+        self.player.invulnerability2_active = False
+        self.update_status()
+
+    def start_lbj_pills(self):
+        self.lbj_pills_active = True
+        self.update_status()
+        self.window.after(300000, self.end_lbj_pills)
+
+    def end_lbj_pills(self):
+        self.lbj_pills_active = False
+        self.update_status()
+
+    def end_hug(self):
+        self.player.hug_active = False
+        self.update_status()
+
+    def end_kiss(self):
+        self.player.kiss_active = False
+        self.update_status()
+
+    def start_pervitin(self):
+        self.player.health_max = 150
+        self.update_status()
+        self.window.after(300000, self.end_pervitin)
+
+    def end_pervitin(self):
+        self.player.pervitin_active = False
+        self.player.health_max = 100
+        self.update_status()
+
+    def end_paralyze_enemy(self):
+        self.player.paralyze_enemy_active = False
+        self.update_status()
+
+    def end_weaken_enemy(self):
+        self.player.weaken_enemy_active = False
         self.update_status()
 
     def schedule_health_increase(self):
@@ -342,8 +407,8 @@ class Game:
         #increase the player's health
         self.player.health += 1
         #if the player's health is greater than 100, set it to 100
-        if self.player.health > 100:
-            self.player.health = 100
+        if self.player.health > self.player.health_max:
+            self.player.health = self.player.health_max
         #update the status label
         self.update_status()
         #schedule the health increase
@@ -415,15 +480,23 @@ class Game:
             status += " IV1"
         if self.player.invulnerability2_active:
             status += " IV2"
-        if self.player.lbj_pills_active:
+        if self.player.lbj_pills_acquired and not self.player.lbj_pills_active:
+            status += " lbj (1 to use)"
+        if self.player.lbj_pills_acquired and self.player.lbj_pills_active:
             status += " LBJ"
-        if self.player.pervitin_active:
+        if self.player.pervitin_acquired and not self.player.pervitin_active:
+            status += " perv (2 to use)"
+        if self.player.pervitin_acquired and self.player.pervitin_active:
             status += " PERV"
         if self.player.digbot_deluxe_active:
             status += " DIGDLX"
-        if self.player.paralyze_enemy_active:
+        if self.player.paralyze_enemy_acquired and not self.player.paralyze_enemy_active:
+            status += " pes (3 to use)"
+        if self.player.paralyze_enemy_acquired and self.player.paralyze_enemy_active:
             status += " PES"
-        if self.player.weaken_enemy_active:
+        if self.player.weaken_enemy_acquired and not self.player.weaken_enemy_active:
+            status += " wes (4 to use)"
+        if self.player.weaken_enemy_acquired and self.player.weaken_enemy_active:
             status += " WES"
         if self.player.bomb:
             status += "\nPlayer has a bomb"
@@ -431,6 +504,7 @@ class Game:
             status += "\nDigbot is not digging"
         if self.digbot.digging:
             status += "\nDigbot is digging"
+
         status += f"\nPoints: {self.player.points} Level: {self.level} Lives: {self.player.lives}"
         status += "\nPress h for help"
         #update the status label
@@ -525,9 +599,43 @@ class Game:
         #update the canvas
         self.canvas.update()
 
+
+    def schedule_bought_item(self, item):
+        start_delay = item[3]
+        end_delay = item[4]
+        if item[2]=="IV1":
+            self.player.invulnerability1_active = True
+            #schedule the invulnerability to end
+            self.window.after(end_delay, self.end_invulnerability1)
+        elif item[2]=="IV2":
+            self.player.invulnerability2_active = True
+            #schedule the invulnerability to end
+            self.window.after(end_delay, self.end_invulnerability2)
+        elif item[2]=="LBJ":
+            self.lbj_pills_acquired = True
+        elif item[2]=="HUG":
+            self.player.hug_active = True
+            #schedule the damage boost to end
+            self.window.after(end_delay, self.end_hug)
+        elif item[2]=="KISS":
+            self.player.kiss_active = True
+            #schedule the damage boost to end
+            self.window.after(end_delay, self.end_kiss)
+        elif item[2]=="PERV":
+            self.player.pervitin_acquired=True
+        elif item[2]=="PES":
+            self.player.paralyze_enemy_acquired==True
+        elif item[2]=="WES":
+            self.player.weaken_enemy_acquired==True
+
     def schedule_digging(self):
         #schedule the digbot to dig
-        self.window.after(1000, self.dug)
+        delay=0
+        if self.player.digbot_deluxe_active:
+            delay=250
+        else:
+            delay=1000
+        self.window.after(delay, self.dug)
 
     def dug(self):
         for x, y in self.dug_cells:
@@ -557,9 +665,9 @@ class Game:
         label.pack()
         #test
         #handle window being closed
+        self.help_is_open = False
         def on_closing():
             window.destroy()
-            self.help_is_open = False
         window.protocol("WM_DELETE_WINDOW", on_closing)
 
     def game_over_info_window(self):
@@ -611,7 +719,8 @@ class Game:
             shop_frame = tk.Frame(shop_window)
             shop_frame.pack()
             #show the items for sale of the npc
-            items_for_sale = npc_items_for_sale[self.npc.name]
+            items_for_sale = self.npc_items_for_sale[self.npc.name]
+            print (items_for_sale)
             if items_for_sale:
                 for item in items_for_sale:
                     item_button = tk.Button(shop_frame, text=f"{item[0]} {item[1]} gold, id: {item[2]}", command=lambda item=item: buy_item(item))
@@ -635,56 +744,62 @@ class Game:
                         if item[2] == "SWORD":
                             self.player.weapon = weapons[1]
                             #update bought_item_label
-                            bought_item_label.config(text="You bought a sword. Immediate activation.")
+                            bought_item_label.config(text="You bought a sword. Immediate activation.\n Activation end time: until weapon is changed or player dies")
+                            self.schedule_bought_item(item)
                         if item[2] == "GUN":
                             self.player.weapon = weapons[2] 
                             #update bought_item_label
-                            bought_item_label.config(text="You bought a gun. Immediate activation.")
-
+                            bought_item_label.config(text="You bought a gun. Immediate activation.\n Activation end time: until weapon is changed or player dies")
+                            self.schedule_bought_item(item)
                     if self.npc.name == "an old mage":
                         if item[2] == "PES":
                             self.player.paralyze_enemy_active = True
                             #update bought_item_label
-                            bought_item_label.config(text="You bought a paralyze enemy spell. Immediate activation.")
+                            bought_item_label.config(text="You bought a paralyze enemy spell. Activation by pressing 'p'.\ Activation end time: after 10 seconds")
+                            self.schedule_bought_item(item)
                         if item[2] == "WES":
                             self.player.weaken_enemy_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought a weaken enemy spell. Immediate activation.")
-                    
+                            self.schedule_bought_item(item)
                     if self.npc.name == "a healer":
                         if item[2] == "IV2":
                             self.player.invulnerability2_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought invulnerability for 2 minutes. Immediate activation.")
+                            self.schedule_bought_item(item)
                         if item[2] == "IV1":
                             self.player.invulnerability1_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought invulnerability for 1 minute. Immediate activation.")
-                    
+                            self.schedule_bought_item(item)
                     if self.npc.name == "a pretty girl":
                         if item[2] == "HUG":
                             self.player.hug_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought a hug. Immediate activation.")
+                            self.schedule_bought_item(item)
                         if item[2] == "KISS":
                             self.player.kiss_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought a kiss. Immediate activation.")
-                    
+                            self.schedule_bought_item(item)
                     if self.npc.name == "a strange creep":
                         if item[2] == "LBJ":
                             self.player.lbj_pills_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought lbj pills. Activate by pressing '1'.")
+                            self.schedule_bought_item(item)
                         if item[2] == "PERV":
                             self.player.pervitin_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought pervitin. Immediate activation.")
+                            self.schedule_bought_item(item)
                         if item[2] == "DIGDLX": 
                             self.player.digbot_deluxe_active = True
                             #update bought_item_label
                             bought_item_label.config(text="You bought a deluxe digbot. Immediate Activation.")
-
+                            self.schedule_bought_item(item)
                     #update the status label
                     self.update_status()
                     #destroy the shop window
@@ -743,6 +858,55 @@ class Game:
         
         #bind the enter key to the enter_pressed function
         text_input.bind("<Return>", enter_pressed)
+
+    def use_lbj_pills(self):
+        #schdule the lbj pill effect to begin
+        self.window.after(120000, self.start_lbj_pills)
+
+    def start_lbj_pills(self):
+        self.player.lbj_pills_active = True
+        self.update_status()
+        self.window.after(300000, self.end_lbj_pills)
+
+    def end_lbj_pills(self):
+        self.player.lbj_pills_active = False
+        self.lbj_pills_acquired = False
+        self.update_status()
+
+    def use_pervitin(self):
+        self.window.after(60000, self.start_pervitin)
+
+    def start_pervitin(self):
+        self.player.pervitin_active = True
+        self.update_status()
+        self.window.after(300000, self.end_pervitin)
+
+    def end_pervitin(self):
+        self.player.pervitin_active = False
+        self.pervitin_acquired = False
+        self.update_status()
+
+    def use_paralyze_enemy_spell(self):
+        self.player.paralyze_enemy_active = True
+        self.update_status()
+        self.window.after(10000, self.end_paralyze_enemy)
+
+    def end_paralyze_enemy(self):
+        self.player.paralyze_enemy_active = False
+        self.update_status()
+
+    def use_weaken_enemy_spell(self):
+        self.player.weaken_enemy_active = True
+        self.enemy.weapon.damage = 1
+        self.enemy.weapon.name = "Weak Fists"
+        self.update_status()
+        self.window.after(10000, self.end_weaken_enemy)
+
+    def end_weaken_enemy(self):
+        self.enemy.weapon.damage = 5
+        self.enemy.weapon.name = "Fists"   
+        self.player.weaken_enemy_active = False
+        self.update_status()
 
     def key_pressed(self, event):
         if self.game_over:
@@ -851,9 +1015,29 @@ class Game:
         elif event.keysym == "space":
             if self.player.bomb:
                 self.place_bomb()
-
+        
         elif event.keysym == "h":
             self.help_window()
+
+        elif event.keysym == "1" and self.player.lbj_pills_acquired:
+            self.use_lbj_pills()
+        
+        elif event.keysym == "2" and self.player.pervitin_acquired:
+            self.use_pervitin()
+
+        elif event.keysym == "3" and self.player.paralyze_enemy_acquired:
+            self.use_paralyze_enemy()
+
+        elif event.keysym == "4" and self.player.weaken_enemy_acquired:
+            self.use_weaken_enemy()
+
+        elif event.keysym == "p" and self.player.lbj_pills_active:
+            #find random floor cell
+            while True:
+                self.player.x = random.randint(0, 49)
+                self.player.y = random.randint(0, 49)
+                if self.dungeon.dungeon[self.player.y][self.player.x] == 0:
+                    break
 
         #empty the cell the player was in
         dungeon[old_y // scale_factor][old_x // scale_factor] = 0
@@ -929,8 +1113,11 @@ class Game:
             return
         #enemy attacks
         else:
+            if self.player.paralyze_enemy_active:
+                return
             #enemy attacks player
-            self.player.health -= self.enemy.weapon.damage
+            if not self.player.invulnerability1_active and not self.player.invulnerability2_active:
+                self.player.health -= self.enemy.weapon.damage
             self.update_status()
             #player is dead
             if self.player.health <= 0:
